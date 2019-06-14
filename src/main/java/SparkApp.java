@@ -18,20 +18,21 @@ import java.lang.reflect.Array;
 import java.util.List;
 
 public class SparkApp {
+
     public static void main(String[] args) {
 
         SparkConf conf1 = new SparkConf().setAppName("ASN1-Spark").setMaster("local[*]");
         JavaSparkContext sc = new JavaSparkContext(conf1);
         Configuration conf = new Configuration(sc.hadoopConfiguration());
         System.out.println   ("tessssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssst");
-        JavaPairRDD<LongWritable ,Text > rdd = sc.newAPIHadoopFile("test.ber", RawFileAsBinaryInputFormat.class, LongWritable.class, Text.class, conf);
+        JavaPairRDD<LongWritable ,Text > rdd = sc.newAPIHadoopFile("hdfs://hadoop1.example.com:8020/user/admin/test.ber", RawFileAsBinaryInputFormat.class, LongWritable.class, Text.class, conf);
         JavaRDD rdd3 =rdd.map(new Function<Tuple2<LongWritable, Text>, Object>() {
             public Object call(Tuple2<LongWritable, Text> longWritableTextTuple2) throws Exception {
                 return longWritableTextTuple2._2().toString();
             }
         });
 
-        JavaRDD rdd2 = rdd3.repartition(3);
+        JavaRDD rdd2 = rdd3.repartition(5);
         /*List rd =rdd2.map(new Function<Tuple2<LongWritable, Text>, Object>() {
             public Object call(Tuple2<LongWritable, Text> longWritableTextTuple2) throws Exception {
                 return longWritableTextTuple2._2().toString();

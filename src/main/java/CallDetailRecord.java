@@ -39,7 +39,7 @@ public class CallDetailRecord extends ASN1Object implements Serializable {
         for (Enumeration<ASN1Encodable> en = cdr.getObjects(); en.hasMoreElements();) {
             ASN1Encodable em = en.nextElement();
             ASN1Primitive emp = em.toASN1Primitive();
-            DLApplicationSpecific emt = (DLApplicationSpecific)emp;
+            DERApplicationSpecific emt = (DERApplicationSpecific)emp;
 
             //System.out.println("emt.getApplicationTag(): "+emt.getApplicationTag());
 
