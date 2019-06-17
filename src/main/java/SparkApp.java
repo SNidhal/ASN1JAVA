@@ -32,7 +32,7 @@ public class SparkApp {
             }
         });
 
-        JavaRDD rdd2 = rdd3.repartition(5);
+        JavaRDD rdd2 = rdd3.repartition(4);
         /*List rd =rdd2.map(new Function<Tuple2<LongWritable, Text>, Object>() {
             public Object call(Tuple2<LongWritable, Text> longWritableTextTuple2) throws Exception {
                 return longWritableTextTuple2._2().toString();

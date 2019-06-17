@@ -34,20 +34,19 @@ public class MyFileRecordReader extends RecordReader<LongWritable ,Text >  {
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
-        System.out.println("next key position: "+postition);
-        currentKey.set(postition);
+
+        currentKey.set(postition+1);
         currentValue.clear();
         int newSize=0;
+        long taille =Integer.MAX_VALUE;
 
-        System.out.println("next key fsin: "+fsin.getPos());
-        System.out.println("pos < end"+(postition<end)+"first :"+fsin.getPos());
 
         while(postition<end){
             System.out.println("while");
             //fsin.seek(postition);
             int cmp=0;
             int i;
-            long taille =Integer.MAX_VALUE;
+
             fsin.seek(postition);
             //System.out.println("fsin read :"+(fsin.read()!=50 )+"//// cmp + pos :"+ (cmp+postition>end-1));
             while( (i=fsin.readByte())!=-1 && fsin.getPos()<end){
@@ -56,8 +55,7 @@ public class MyFileRecordReader extends RecordReader<LongWritable ,Text >  {
                     taille=i+fsin.getPos();
                 }
                 if(fsin.getPos()<=taille) {
-                    //if(postition==208) System.out.println("156 ahaw");
-                    //newSize++;
+
                     System.out.println("byte: " + i+ "----------- pos  :"+fsin.getPos()+"----------taille   :"+taille);
                     byte[] b = {(byte) i};
                     currentValue.append(b, 0, 1);
@@ -76,6 +74,18 @@ public class MyFileRecordReader extends RecordReader<LongWritable ,Text >  {
             postition=taille;
            // System.out.println("new pos: "+postition+"+++++++++++ taille : "+taille);
         }
+        System.out.println("final positin ----- "+postition);
+        if(postition==end) System.out.println("there is no spillage");
+        else {
+            int i;
+            while( (i=fsin.readByte())!=-1  && fsin.getPos()==taille){
+
+                    System.out.println("byte: " + i+ "----------- pos  :"+fsin.getPos()+"----------taille   :"+taille);
+                    byte[] b = {(byte) i};
+                    currentValue.append(b, 0, 1);
+
+            }
+        }
         if(newSize==0){
             currentKey=null;
             currentValue=null;
@@ -84,28 +94,7 @@ public class MyFileRecordReader extends RecordReader<LongWritable ,Text >  {
         }else {
             return true;
         }
-     /*   if (isProcessed) return false;
 
-
-
-        int recordCounter = 0;
-        while ((obj = asnin.readObject()) != null) {
-
-            CallDetailRecord thisCdr = new CallDetailRecord((ASN1Sequence) obj);
-            recordCounter++;
-
-            System.out.println("CallDetailRecord "+thisCdr.getRecordNumber()+" Calling "+thisCdr.getCallingNumber()
-                    +" Called "+thisCdr.getCalledNumber()+ " Start Date-Time "+thisCdr.getStartDate()+"-"
-                    +thisCdr.getStartTime()+" duration "+thisCdr.getDuration()
-            );
-
-        }
-        isProcessed = true;
-        currentKey = new LongWritable( recordCounter);
-        //Return number of records
-        currentValue = new Text(String.valueOf(recordCounter));
-
-        return true;*/
     }
 
     @Override
@@ -133,7 +122,7 @@ public class MyFileRecordReader extends RecordReader<LongWritable ,Text >  {
         Configuration conf = context.getConfiguration();
         /////////////////
         FileSplit isplit =(FileSplit) split;
-        //start=Integer.max((int) (isplit.getStart()-1),0);
+
         start=isplit.getStart();
         end =start+isplit.getLength();
 
@@ -145,40 +134,23 @@ public class MyFileRecordReader extends RecordReader<LongWritable ,Text >  {
         fsin = fs.open(path);
         //System.out.println("pos :     ---------"+fsin.readByte());
         //tessssssssssssssst
-        boolean skipFirstRecord = false;
+        //boolean skipFirstRecord = false;
         if(start!=0){
-            skipFirstRecord=true;
-            --start;
-            fsin.seek(start);
-        }
-        byte[] bt ={50};
-        //in =new LineReader(fsin,conf,bt);
+            System.out.println("Skip first recored");
 
-        if(skipFirstRecord){
-            Text dummy = new Text();
-            int btSize=0;
-            while(fsin.read()!=50){
-                btSize++;
-                //System.out.println("Skip first recored"+fsin.read());
-            }
-            start+=btSize;
+            int firstByte = fsin.readByte();
+            int tempSize= fsin.readByte();
+
+            while(isRecordStart(48)==false) System.out.println("not record start");
+            start=fsin.getPos();
+
         }
+
         System.out.println("Dont Skip first recored");
 
     postition=start;
         ////////////////////////////
-     /*   fsin.seek(start);
-        int firstByte=fsin.readByte();
-        if(firstByte==50)start=Integer.max((int) (start-1),0);
-        fsin.seek(start);
 
-        if(start!=0)
-
-
-        while(fsin.read()!=-1)System.out.println(fsin.read());
-        is=decompressStream(fsin);
-
-        asnin = new ASN1InputStream(is);*/
     }
 
     @Override
@@ -188,27 +160,35 @@ public class MyFileRecordReader extends RecordReader<LongWritable ,Text >  {
         if (fsin!=null) fsin.close();
     }
 
-    public static InputStream decompressStream(InputStream input) {
-        InputStream returnStream=null;
-        org.apache.commons.compress.compressors.CompressorInputStream cis = null;
-        BufferedInputStream bis=null;
-        try {
-            bis = new BufferedInputStream(input);
-            bis.mark(1024);   //Mark stream to reset if uncompressed data
-            cis = new org.apache.commons.compress.compressors.CompressorStreamFactory().createCompressorInputStream(bis);
-            returnStream = cis;
-        } catch (org.apache.commons.compress.compressors.CompressorException ce) { //CompressorStreamFactory throws CompressorException for uncompressed files
-            try {
-                bis.reset();
-            } catch (IOException ioe) {
-                String errmessageIOE="IO Exception ( "+ioe.getClass().getName()+" ) : "+ioe.getMessage();
-                System.out.println(errmessageIOE);
+
+
+    public boolean isRecordStart( int stratingByte) throws IOException{
+
+        int firstByte = fsin.readByte();
+        int tempSize= fsin.readByte();
+        long position=fsin.getPos();
+
+
+        if(firstByte==stratingByte){
+            fsin.seek(tempSize+fsin.getPos());
+            if(fsin.readByte()!= stratingByte){
+                fsin.seek(fsin.getPos()-1);
+                start =fsin.getPos();
+                return true;
             }
-            returnStream = bis;
-        } catch (Exception e) {
-            String errmessage="Exception ( "+e.getClass().getName()+" ) : "+e.getMessage();
-            System.out.println(errmessage);
+
+        }else{
+            fsin.seek(position+1);
+            int i;
+            while((i=fsin.readByte())!=-1){
+                if(i==stratingByte){
+                    fsin.seek(fsin.getPos()-1);
+                    break;
+                }
+            }
+            return false;
+
         }
-        return returnStream;
+       return false;
     }
 }
